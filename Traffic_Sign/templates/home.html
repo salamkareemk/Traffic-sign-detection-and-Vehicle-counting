@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Traffic Sign Detector</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/dropzone.min.css">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --background: #0f172a;
+            --surface: #1e293b;
+            --text: #f8fafc;
+            --text-secondary: #94a3b8;
+            --red: #dc2626;
+            --yellow: #fbbf24;
+            --green: #22c55e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            width: 100%;
+        }
+
+        /* Traffic Light Styles */
+        .traffic-light {
+            width: 80px;
+            height: 200px;
+            background: #374151;
+            border-radius: 40px;
+            padding: 15px;
+            margin: 0 auto 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow:
+                0 0 0 10px rgba(55, 65, 81, 0.3),
+                0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .light {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #1f2937;
+            position: relative;
+        }
+
+        .light::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 50%;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .red { animation: glow-red 4s infinite; }
+        .yellow { animation: glow-yellow 4s infinite 1.3s; }
+        .green { animation: glow-green 4s infinite 2.6s; }
+
+        @keyframes glow-red {
+            0%, 50%, 100% { background: #1f2937; box-shadow: none; }
+            25% { background: var(--red); box-shadow: 0 0 30px var(--red); }
+        }
+
+        @keyframes glow-yellow {
+            0%, 50%, 100% { background: #1f2937; box-shadow: none; }
+            25% { background: var(--yellow); box-shadow: 0 0 30px var(--yellow); }
+        }
+
+        @keyframes glow-green {
+            0%, 50%, 100% { background: #1f2937; box-shadow: none; }
+            25% { background: var(--green); box-shadow: 0 0 30px var(--green); }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 4rem;
+            padding-top: 2rem;
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* Two columns for horizontal layout */
+            gap: 3rem;
+            margin: 0 auto;
+            max-width: 1200px; /* Increase max-width to accommodate both sections */
+        }
+
+        .upload-section,
+        .result-section {
+            background: var(--surface);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .dropzone {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(15, 23, 42, 0.3);
+            min-height: 400px; /* Increase height to match the result section */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dropzone:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .dz-message {
+            color: var(--text-secondary);
+        }
+
+        .dz-message h3 {
+            font-size: 1.5rem;
+            color: var(--text);
+            margin-bottom: 1rem;
+        }
+
+        .result-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .prediction {
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .prediction h3 {
+            color: var(--primary);
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            text-transform: capitalize;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(59, 130, 246, 0.1);
+            border-left: 4px solid var(--primary);
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            animation: spin 1s linear infinite;
+        }
+
+        .error-message {
+            display: none;
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        .reupload-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 1rem;
+            transition: background-color 0.3s ease;
+            display: none;
+        }
+
+        .reupload-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .traffic-light {
+                width: 60px;
+                height: 160px;
+                padding: 10px;
+            }
+
+            .light {
+                width: 40px;
+                height: 40px;
+            }
+
+            .main-content {
+                grid-template-columns: 1fr; /* Switch back to vertical layout on smaller screens */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="traffic-light">
+                <div class="light red"></div>
+                <div class="light yellow"></div>
+                <div class="light green"></div>
+            </div>
+            <h1>Smart Traffic Sign Detector</h1>
+            <p>Upload any traffic sign image and our AI will instantly identify it with high precision</p>
+        </header>
+
+        <main class="main-content">
+            <section class="upload-section">
+                <form action="/predict" class="dropzone" id="upload-form">
+                    <div class="dz-message">
+                        <h3>🚦 Drop your traffic sign image here</h3>
+                        <p>or click to select from your device</p>
+                    </div>
+                </form>
+
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Analyzing your traffic sign...</p>
+                </div>
+
+                <div class="error-message"></div>
+                <button class="reupload-btn" style="display: block; margin: 20px auto;">Back</button>
+            </section>
+
+            <section class="result-section">
+                <div class="prediction">
+                    <h3></h3>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        let currentDropzone = null;
+
+        function initializeDropzone() {
+            if (currentDropzone) {
+                currentDropzone.destroy();
+            }
+
+            currentDropzone = new Dropzone("#upload-form", {
+                acceptedFiles: "image/*",
+                maxFilesize: 16,
+                maxFiles: 1,
+                autoProcessQueue: true,
+                init: function() {
+                    this.on("sending", function() {
+                        document.querySelector('.loading').style.display = 'block';
+                        document.querySelector('.error-message').style.display = 'none';
+                        document.querySelector('.result-section').style.display = 'none';
+                        document.querySelector('.reupload-btn').style.display = 'none';
+                    });
+
+                    this.on("success", function(file, response) {
+                        document.querySelector('.loading').style.display = 'none';
+                        document.querySelector('.result-section').style.display = 'block';
+                        document.querySelector('.reupload-btn').style.display = 'block';
+
+                        const prediction = document.querySelector('.prediction h3');
+
+                        if (response.class_name) {
+                            prediction.textContent = response.class_name.replace(/_/g, ' ').toLowerCase();
+                        } else {
+                            console.error("No class name found in the response.");
+                        }
+
+                        this.disable();
+                    });
+
+                    this.on("error", function(file, errorMessage) {
+                        document.querySelector('.loading').style.display = 'none';
+                        const errorElement = document.querySelector('.error-message');
+                        errorElement.textContent = typeof errorMessage === 'string'
+                            ? errorMessage
+                            : errorMessage.error || 'An error occurred while uploading the image';
+                        errorElement.style.display = 'block';
+                        document.querySelector('.reupload-btn').style.display = 'block';
+
+                        this.removeFile(file);
+                    });
+
+                    this.on("maxfilesexceeded", function(file) {
+                        this.removeAllFiles();
+                        this.addFile(file);
+                    });
+                }
+            });
+        }
+
+        // Initialize the first dropzone
+        initializeDropzone();
+
+        // Handle reupload button click
+        document.querySelector('.reupload-btn').addEventListener('click', function() {
+            document.querySelector('.error-message').style.display = 'none';
+            document.querySelector('.result-section').style.display = 'none';
+            initializeDropzone();
+        });
+    </script>
+</body>
+</html>
